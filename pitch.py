@@ -1,7 +1,7 @@
-from __future__ import division
+
 from numpy.fft import rfft
 from numpy import argmax, mean, diff, log
-from matplotlib.mlab import find
+#from matplotlib.mlab import find
 #from scipy.signal import blackmanharris, fftconvolve
 from time import time
 import sys
@@ -15,7 +15,10 @@ import copy
 #except ImportError:
 #    from scikits.audiolab import flacread
 
-
+def mlab_find(condition):
+    res, = numpy.nonzero(numpy.ravel(condition))
+    return res
+		
 #from parabolic import parabolic
 
 def blackmanharris(n):
@@ -23,7 +26,7 @@ def blackmanharris(n):
 	c = [0.35875, 0.48829, 0.14128, 0.01168]
 	duepi_div = (2.0*np.pi)/(n-1)
 	w = []
-	for i in xrange(n):
+	for i in range(n):
 		ph = duepi_div*i
 		x = c[0] - c[1]*np.cos(ph) + c[2]*np.cos(2.0*ph) - c[3]*np.cos(3.0*ph)
 		w.append(x)
@@ -35,7 +38,7 @@ def freq_from_crossings(sig, fs):
     Estimate frequency by counting zero crossings
     """
     # Find all indices right before a rising-edge zero crossing
-    indices = find((sig[1:] >= 0) & (sig[:-1] < 0))
+    indices = mlab_find((sig[1:] >= 0) & (sig[:-1] < 0))
 
     # Naive (Measures 1000.185 Hz for 1000 Hz, for instance)
     # crossings = indices
@@ -78,7 +81,7 @@ def freq_from_autocorr(sig, fs):
 
     # Find the first low point
     d = diff(corr)
-    start = find(d > 0)[0]
+    start = mlab_find(d > 0)[0]
 
     # Find the next peak after the low point (other than 0 lag).  This bit is
     # not reliable for long signals, due to the desired peak occurring between
@@ -111,7 +114,7 @@ def freq_from_HPS(sig, fs):
         i = argmax(abs(c))
         #true_i = parabolic(abs(c), i)[0]
         true_i = i
-        print 'Pass %d: %f Hz' % (x, fs * true_i / len(windowed))
+        print('Pass %d: %f Hz' % (x, fs * true_i / len(windowed)))
         c *= a
         plt.subplot(maxharms, 1, x)
         plt.plot(log(c))
@@ -135,34 +138,34 @@ def music_frequencies():
 	
 filename = sys.argv[1]
 
-print 'Reading file "%s"\n' % filename
+print('Reading file "%s"\n' % filename)
 f = wave.open(filename,'r')
 #signal = f.readframes(f.getnframes())
 bps = f.getsampwidth()
 nfr = max(f.getnframes(), 8192)
 nch = f.getnchannels()
 fs = f.getframerate()
-print nfr, bps, nch, fs
+print(nfr, bps, nch, fs)
 tmps = f.readframes(nfr)
 framesize = bps*nch
 tmp = []
 tmp2 = []
 offset = 0
 if bps == 1:
-	for k in xrange(nfr):
+	for k in range(nfr):
 		tmp.append( struct.unpack('b',tmps[offset:offset+bps])[0] )
 		if nch == 2:
 			tmp2.append( struct.unpack('b',tmps[offset+bps:offset+2*bps])[0] )
 		offset += framesize
 elif bps == 2:
-	for k in xrange(nfr):
+	for k in range(nfr):
 		tmp.append( struct.unpack('h',tmps[offset:offset+bps])[0] )
 		if nch == 2:
 			tmp2.append( struct.unpack('h',tmps[offset+bps:offset+2*bps])[0] )
 		offset += framesize
 totsignal = np.array(tmp) / 32767.0
 totsignal2 = np.array(tmp2) / 32767.0
-print len(totsignal), len(totsignal2)
+print(len(totsignal), len(totsignal2))
 
 f.close()
 
@@ -208,22 +211,22 @@ plt.subplots_adjust(top=0.95, bottom=0.05, hspace=0.10)
 plt.show()
 sys.exit(0)
 
-print 'Calculating frequency from FFT:',
+print('Calculating frequency from FFT:', end=' ')
 start_time = time()
-print '%f Hz' % freq_from_fft(signal, fs)
-print 'Time elapsed: %.3f s\n' % (time() - start_time)
+print('%f Hz' % freq_from_fft(signal, fs))
+print('Time elapsed: %.3f s\n' % (time() - start_time))
 
-print 'Calculating frequency from zero crossings:',
+print('Calculating frequency from zero crossings:', end=' ')
 start_time = time()
-print '%f Hz' % freq_from_crossings(signal, fs)
-print 'Time elapsed: %.3f s\n' % (time() - start_time)
+print('%f Hz' % freq_from_crossings(signal, fs))
+print('Time elapsed: %.3f s\n' % (time() - start_time))
 
 #print 'Calculating frequency from autocorrelation:',
 #start_time = time()
 #print '%f Hz' % freq_from_autocorr(signal, fs)
 #print 'Time elapsed: %.3f s\n' % (time() - start_time)
 
-print 'Calculating frequency from harmonic product spectrum:'
+print('Calculating frequency from harmonic product spectrum:')
 start_time = time()
 freq_from_HPS(signal, fs)
-print 'Time elapsed: %.3f s\n' % (time() - start_time)
+print('Time elapsed: %.3f s\n' % (time() - start_time))
